@@ -7,12 +7,13 @@ module Heroku
 
     VERSION = "0.2.2"
 
-    attr_reader :app, :options, :last_scaled
+    attr_reader :app, :options, :last_scaled, :wait_time
 
     def initialize(app, options={})
       @app = app
       @options = default_options.merge(options)
       @last_scaled = Time.now - 60
+      @wait_time = nil
       check_options!
     end
 
@@ -33,16 +34,16 @@ private ######################################################################
       return if (Time.now - last_scaled) < options[:min_frequency]
 
       original_dynos = dynos = current_dynos
-      wait = queue_wait(env)
+      @wait_time = queue_wait(env)
 
-      dynos -= 1 if wait <= options[:queue_wait_low]
-      dynos += 1 if wait >= options[:queue_wait_high]
+      dynos -= 1 if wait_time <= options[:queue_wait_low]
+      dynos += 1 if wait_time >= options[:queue_wait_high]
 
       dynos = options[:min_dynos] if dynos < options[:min_dynos]
       dynos = options[:max_dynos] if dynos > options[:max_dynos]
       dynos = 1 if dynos < 1
 
-      set_dynos(dynos) if dynos != original_dynos
+      set_dynos(dynos, original_dynos) if dynos != original_dynos
     end
 
     def check_options!
@@ -76,8 +77,9 @@ private ######################################################################
       env["HTTP_X_HEROKU_QUEUE_WAIT_TIME"].to_i
     end
 
-    def set_dynos(count)
-      heroku.set_dynos(options[:app_name], count)
+    def set_dynos(dynos_count, original_dynos)
+      heroku.set_dynos(options[:app_name], dynos_count)
+      DynosNotifer.notification(dynos_count, original_dynos, wait_time).deliver
       @last_scaled = Time.now
     end
 
