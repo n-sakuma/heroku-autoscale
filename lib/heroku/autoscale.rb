@@ -5,7 +5,7 @@ require "rack"
 module Heroku
   class Autoscale
 
-    VERSION = "0.2.2"
+    VERSION = "0.3.0"
 
     attr_reader :app, :options, :last_scaled, :wait_time
 
