@@ -79,7 +79,7 @@ private ######################################################################
 
     def set_dynos(dynos_count, original_dynos)
       heroku.set_dynos(options[:app_name], dynos_count)
-      DynosNotifer.notification(dynos_count, original_dynos, wait_time).deliver
+      DynosNotifer.notification(dynos_count, original_dynos, options[:app_name], wait_time).deliver
       @last_scaled = Time.now
     end
 
